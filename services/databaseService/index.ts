@@ -26,8 +26,7 @@ export class DatabaseService {
 
       await this.sequelize.sync()
       this.logger.logInfo('Database successfully synchronized')
-    }
-    catch (error: any) {
+    } catch (error: any) {
       this.logger.logError(`Unable to connect to the database: ${error.stack ?? error.toString()}`)
       throw error
     }

@@ -37,6 +37,6 @@ function loadRoutes (): void {
 
 start().then(() => {
   LoggerService.logInfo('Payment gateway started successfully')
-}).catch((error : Error) => {
-    LoggerService.logError(`Failed to start payment gateway: ${error.stack ?? error.toString()}`)
+}).catch((error: Error) => {
+  LoggerService.logError(`Failed to start payment gateway: ${error.stack ?? error.toString()}`)
 })
