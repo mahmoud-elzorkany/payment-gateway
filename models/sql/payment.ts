@@ -3,6 +3,7 @@ import Sequelize, { Model } from 'sequelize'
 import { type PaymentStatus } from '../api/payment/params'
 
 export class PaymentModel extends Model {
+  declare id: number
   declare cardHolderFirstName: string
   declare cardHolderLastName: string
   declare cardNumber: number
@@ -11,6 +12,8 @@ export class PaymentModel extends Model {
   declare amount: number
   declare currency: string
   declare status: PaymentStatus
+  declare readonly createdAt: Date
+  declare readonly updatedAt: Date
 }
 
 export default function (sequelize: Sequelize.Sequelize): typeof PaymentModel {

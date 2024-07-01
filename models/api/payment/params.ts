@@ -8,9 +8,13 @@ export interface CreatePaymentRequestParams {
   currency: string
 }
 
-export interface CreatePaymentResponseParams extends CreatePaymentRequestParams {
+export interface PaymentResponse extends CreatePaymentRequestParams {
   id: number
   status: PaymentStatus
 }
 
 export type PaymentStatus = 'success' | 'failed' | 'pending'
+
+export interface GetPaymentStatusParams {
+  id: string
+}

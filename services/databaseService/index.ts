@@ -15,7 +15,10 @@ export class DatabaseService {
       storage: Path.resolve(DATA_DIR + '/database/database.sqlite'),
       logging: false
     })
+
+    // Todo: initialize the models dynamically based on the models/sql directory
     this.paymentModel = initPaymentModel(this.sequelize)
+
     this.logger = new LoggerService()
   }
 
@@ -30,6 +33,11 @@ export class DatabaseService {
       this.logger.logError(`Unable to connect to the database: ${error.stack ?? error.toString()}`)
       throw error
     }
+  }
+
+  async closeDatabase (): Promise<void> {
+    await this.sequelize.close()
+    this.logger.logInfo('Database connection closed')
   }
 }
 
