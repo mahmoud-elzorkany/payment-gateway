@@ -1,30 +1,50 @@
-import { PaymentError } from '../errors/paymentError'
-import type { PaymentModel } from '../../models/sql/payment'
-import type { PaymentResponse } from '../../models/api/payment/params'
+import {
+  GatewayError,
+  PaymentGatewayError,
+} from "../../services/errors/gatewayError";
+import type { PaymentModel } from "../../models/sql/payment";
+import type { PaymentResponse } from "../../models/api/payment/params";
 
-export function assertCardNotExpired (cardExpirationDate: string): void {
-  const currentDate = new Date()
-  const currentYear = String(currentDate.getFullYear()).slice(-2)
-  const currentMonth = String(currentDate.getMonth() + 1).padStart(2, '0')
-
-  const expirationYear = cardExpirationDate.split('/')[1]
-  const expirationMonth = cardExpirationDate.split('/')[0]
-
-  if (expirationYear < currentYear || (expirationYear === currentYear && expirationMonth < currentMonth)) {
-    throw new PaymentError(422, 'Unable to process payment: card has expired')
-  }
-}
-
-export function toPaymentResponse (paymentModel: PaymentModel): PaymentResponse {
+export function toPaymentResponse(paymentModel: PaymentModel): PaymentResponse {
   return {
-    id: paymentModel.id,
-    cardHolderFirstName: paymentModel.cardHolderFirstName,
-    cardHolderLastName: paymentModel.cardHolderLastName,
-    cardNumber: paymentModel.cardNumber,
-    cardExpirationDate: paymentModel.cardExpirationDate,
-    cvv: paymentModel.cvv,
+    paymentId: paymentModel.uuid,
+    cardHolderName: paymentModel.cardHolderName,
+    cardNumber: obfuscateCardNumber(paymentModel.cardNumber),
+    cardExpirationDate: obfuscateExpirationDate(
+      paymentModel.cardExpirationDate,
+    ),
+    cvv: obfuscateCvv(paymentModel.cvv),
     amount: paymentModel.amount,
     currency: paymentModel.currency,
-    status: paymentModel.status
+    status: paymentModel.status,
+    code: paymentModel.statusCode,
+  };
+}
+
+export function obfuscateCardNumber(cardNumber: string): string {
+  if (cardNumber.length < 13) {
+    throw new GatewayError(
+      PaymentGatewayError.INVALID_CARD_NUMBER,
+      "Invalid card number",
+    );
   }
+
+  return `**** **** **** ${String(cardNumber).slice(-4)}`;
+}
+
+export function obfuscateExpirationDate(expirationDate: string): string {
+  if (expirationDate.length < 5) {
+    throw new GatewayError(
+      PaymentGatewayError.INVALID_EXPIRATION_DATE,
+      "Invalid expiration date",
+    );
+  }
+  return `**/${String(expirationDate).slice(-2)}`;
+}
+
+export function obfuscateCvv(cvv: string): string {
+  if (cvv.length < 3) {
+    throw new GatewayError(PaymentGatewayError.INVALID_CVV, "Invalid CVV");
+  }
+  return `***`;
 }
