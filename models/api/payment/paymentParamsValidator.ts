@@ -63,7 +63,7 @@ export class PaymentParamsValidator {
           amount: yup.number().positive().min(1).required(),
 
           // The currency is a string with exactly three characters.
-          // It is a required field ans must be in uppercase. ex "USD"
+          // It is a required field
           currency: yup.string().required().length(3).uppercase(),
         })
         // We don't allow any unknown fields in the request.
@@ -89,6 +89,3 @@ export class PaymentParamsValidator {
     );
   }
 }
-
-// The class is exported as a singleton.
-export default new PaymentParamsValidator();

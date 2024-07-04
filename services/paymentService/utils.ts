@@ -30,6 +30,7 @@ export function toPaymentResponse(paymentModel: PaymentModel): PaymentResponse {
 
 /**
  * Obfuscate the card number by replacing all but the last four digits with asterisks.
+ * The card number must be at least 13 characters long (an assumption made when googling the minimum number of digits for bank cards).
  */
 export function obfuscateCardNumber(cardNumber: string): string {
   if (cardNumber.length < 13) {

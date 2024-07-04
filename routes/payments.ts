@@ -25,20 +25,19 @@
  *
  * Note that the API gateway can perform load balancing, however the usages of dedicated load balancers removes the overhead of having to handle service discovery and health checks.
  * Also, the load balancer can be configured to distribute the traffic based on different algorithms like round-robin, minimum connections, ring hash, etc.
- *
- *
  */
 
 import * as express from "express";
-import PaymentParamsValidator from "../models/api/payment/paymentParamsValidator";
 import {
   type CreatePaymentRequestParams,
   type GetPaymentRequestParams,
 } from "../models/api/payment/params";
-import PaymentService from "../services/paymentService/index";
 import { respondToError } from "./utils";
+import { PaymentParamsValidator } from "../models/api/payment/paymentParamsValidator";
+import PaymentService from "../services/paymentService/index";
 
 const router = express.Router();
+const paymentParamsValidator = new PaymentParamsValidator();
 
 /**
  * @api {post} /payments
@@ -67,7 +66,7 @@ router.post("/", function (req: express.Request, res: express.Response) {
   void (async () => {
     try {
       const paymentRequest: CreatePaymentRequestParams =
-        PaymentParamsValidator.validateCreatePaymentRequestParams(req.body);
+        paymentParamsValidator.validateCreatePaymentRequestParams(req.body);
       const paymentResponse =
         await PaymentService.createPayment(paymentRequest);
       res.status(201).send(paymentResponse);
@@ -105,7 +104,7 @@ router.get(
     void (async () => {
       try {
         const getPaymentStatusRequest: GetPaymentRequestParams =
-          PaymentParamsValidator.validateGetPaymentRequestParams(req.params);
+          paymentParamsValidator.validateGetPaymentRequestParams(req.params);
         const payment = await PaymentService.getPaymentStatus(
           getPaymentStatusRequest.paymentId,
         );

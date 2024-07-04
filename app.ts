@@ -20,7 +20,7 @@ const app = express();
 
 // Start the payment gateway
 // The main entry point of the application
-start()
+startGateway()
   .then(() => {
     LoggerService.logInfo("Payment gateway started successfully");
   })
@@ -33,16 +33,16 @@ start()
 
 // Handle SIGINT and SIGTERM signals
 process.on("SIGINT", () => {
-  void stop();
+  void stopGateway();
 });
 process.on("SIGTERM", () => {
-  void stop();
+  void stopGateway();
 });
 
 /**
  * Initialize the data folder, database and server
  */
-async function start(): Promise<void> {
+async function startGateway(): Promise<void> {
   initializeDataFolder();
   await initializeDatabase();
   initializeServer();
@@ -52,7 +52,7 @@ async function start(): Promise<void> {
  * Stop the payment gateway
  * Close the database connection and exit the process
  */
-async function stop(): Promise<void> {
+async function stopGateway(): Promise<void> {
   try {
     LoggerService.logInfo("Stopping payment gateway");
     await DatabaseService.closeDatabase();
@@ -87,7 +87,7 @@ async function initializeDatabase(): Promise<void> {
 function initializeServer(): void {
   configureServer();
   loadRoutes();
-  startServer();
+  listen();
 }
 
 /**
@@ -115,7 +115,7 @@ function loadRoutes(): void {
 /**
  * Starts the server and listen on the specified port
  */
-function startServer(): void {
+function listen(): void {
   app.listen(PORT_NUMBER);
   LoggerService.logInfo(`Server is listening on port ${PORT_NUMBER}`);
 }

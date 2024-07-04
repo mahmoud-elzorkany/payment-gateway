@@ -64,7 +64,10 @@ export class AcquiringBankService {
    * where the pending payment is resolved after 15 seconds with a random status (success or failed).
    * then a response from the acquiring bank is simulated by emitting an event with the payment status update.
    */
-  processPayment(cardNumber: string): PaymentResult {
+  processPayment(
+    cardNumber: string,
+    resolvePendingPayment = true,
+  ): PaymentResult {
     const paymentId = crypto.randomUUID();
     const paymentResult: PaymentResult = {
       code: "processing_payment",
@@ -82,7 +85,9 @@ export class AcquiringBankService {
     } else {
       paymentResult.status = "pending";
       paymentResult.code = "processing_payment";
-      this.simulatePendingPayment(paymentId);
+      if (resolvePendingPayment) {
+        this.simulatePendingPayment(paymentId);
+      }
     }
 
     if (paymentResult.status === "success") {
