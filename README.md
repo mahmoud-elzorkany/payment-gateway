@@ -24,8 +24,8 @@ payment requests and accepting payment responses to and from the acquiring bank.
 - To run the e2e tests, run the command `npm run test:e2e`.
 
 ## API Endpoints:
-- **POST /api/payment**: This endpoint is used to initiate a payment request. It accepts a JSON object in the request body with the following properties:
-- **GET /api/payment/:id**: This endpoint is used to get the payment information by its UUID.
+- **POST /payment**: This endpoint is used to initiate a payment request. It accepts a JSON object in the request body with the following properties:
+- **GET /payment/:id**: This endpoint is used to get the payment information by its UUID.
 
 Please refer to: `models/api/payment/params.ts` for the request and response body schema.
 
