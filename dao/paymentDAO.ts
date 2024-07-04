@@ -11,10 +11,9 @@ import {
 } from "../models/api/payment/params";
 
 interface CreatePaymentAttributes extends CreatePaymentRequestParams {
-  uuid: string;
+  paymentId: string;
   status: PaymentStatus;
   statusCode: PaymentStatusCode;
-  bankTransactionId: string;
 }
 
 export class PaymentDAO {
@@ -26,20 +25,20 @@ export class PaymentDAO {
     });
   }
 
-  async getPaymentById(uuid: string): Promise<PaymentModel | null> {
+  async getPaymentById(paymentId: string): Promise<PaymentModel | null> {
     return await DatabaseService.paymentModel.findOne({
-      where: { uuid },
+      where: { paymentId },
     });
   }
 
-  async updatePaymentStatusByBankTransactionId(
-    transactionId: string,
+  async updatePaymentStatusById(
+    paymentId: string,
     status: PaymentStatus,
     statusCode: PaymentStatusCode,
   ): Promise<void> {
     await DatabaseService.paymentModel.update(
       { status, statusCode },
-      { where: { bankTransactionId: transactionId } },
+      { where: { paymentId } },
     );
   }
 }

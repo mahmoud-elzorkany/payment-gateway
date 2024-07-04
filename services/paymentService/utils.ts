@@ -14,7 +14,7 @@ import type { PaymentResponse } from "../../models/api/payment/params";
  */
 export function toPaymentResponse(paymentModel: PaymentModel): PaymentResponse {
   return {
-    paymentId: paymentModel.uuid,
+    paymentId: paymentModel.paymentId,
     cardHolderName: paymentModel.cardHolderName,
     cardNumber: obfuscateCardNumber(paymentModel.cardNumber.toString()),
     cardExpirationDate: obfuscateExpirationDate(

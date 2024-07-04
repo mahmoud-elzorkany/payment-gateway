@@ -23,8 +23,8 @@ export interface CreatePaymentRequestParams {
 }
 
 /**
- * The parameters for getting the status of a payment.
- * @property {string} paymentId   - The id of the payment to get the status for.
+ * The parameters for getting the details of a payment.
+ * @property {string} paymentId   - The unique identifier of the payment.
  */
 export interface GetPaymentRequestParams {
   paymentId: string;

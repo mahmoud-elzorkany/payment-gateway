@@ -47,13 +47,13 @@ export class PaymentService {
   private paymentStatusUpdateHandler(paymentResult: PaymentResult): void {
     void (async () => {
       try {
-        await this.updatePaymentStatusByBankTransactionId(
-          paymentResult.bankTransactionId,
+        await this.updatePaymentStatusById(
+          paymentResult.paymentId,
           paymentResult.status,
           paymentResult.code,
         );
         LoggerService.logInfo(
-          `Payment status updated for transaction id ${paymentResult.bankTransactionId}`,
+          `Payment status updated for transaction id ${paymentResult.paymentId}`,
         );
       } catch (error) {
         const castedError = castError(error);
@@ -67,7 +67,7 @@ export class PaymentService {
   /**
    * Create a payment request.
    * This function processes the payment request by calling the acquiring bank service to process the payment.
-   * It then creates a payment record in the database with the payment status and bank transaction id.
+   * It then creates a payment record in the database with the payment status and bank payment id.
    */
   async createPayment(
     paymentRequest: CreatePaymentRequestParams,
@@ -78,11 +78,9 @@ export class PaymentService {
 
     const paymentModel = await PaymentDAO.createPayment({
       ...paymentRequest,
-      // Generate a unique UUID for the payment
-      uuid: crypto.randomUUID(),
+      paymentId: paymentResult.paymentId,
       status: paymentResult.status,
       statusCode: paymentResult.code,
-      bankTransactionId: paymentResult.bankTransactionId,
     });
 
     return toPaymentResponse(paymentModel);
@@ -108,19 +106,15 @@ export class PaymentService {
   }
 
   /**
-   * Update the payment status by bank transaction id.
-   * This function updates the payment status in the database based on the bank transaction id.
+   * Update the payment status by bank payment id.
+   * This function updates the payment status in the database based on the bank payment id.
    */
-  async updatePaymentStatusByBankTransactionId(
-    transactionId: string,
+  async updatePaymentStatusById(
+    paymentId: string,
     status: PaymentStatus,
     statusCode: PaymentStatusCode,
   ): Promise<void> {
-    await PaymentDAO.updatePaymentStatusByBankTransactionId(
-      transactionId,
-      status,
-      statusCode,
-    );
+    await PaymentDAO.updatePaymentStatusById(paymentId, status, statusCode);
   }
 }
 export default new PaymentService();

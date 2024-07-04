@@ -5,7 +5,7 @@
  * If the card number is not in either list, it simulates a pending payment
  * where the pending payment is resolved after 15 seconds with a random status (success or failed).
  * then a response from the acquiring bank is simulated by emitting an event with the payment status update.
- * This event is handled by the payment service to update the payment status in the database using the bank transaction id.
+ * This event is handled by the payment service to update the payment status in the database using the payment id.
  *
  * Note: The 15 seconds delay for payment resolution is non-blocking for the server.
  *
@@ -39,7 +39,7 @@ import LoggerService from "../loggerService";
 export interface PaymentResult {
   status: PaymentStatus;
   code: PaymentStatusCode;
-  bankTransactionId: string;
+  paymentId: string;
 }
 
 export class AcquiringBankService {
@@ -65,11 +65,11 @@ export class AcquiringBankService {
    * then a response from the acquiring bank is simulated by emitting an event with the payment status update.
    */
   processPayment(cardNumber: string): PaymentResult {
-    const transactionId = crypto.randomUUID();
+    const paymentId = crypto.randomUUID();
     const paymentResult: PaymentResult = {
       code: "processing_payment",
       status: "pending",
-      bankTransactionId: transactionId,
+      paymentId,
     };
     if (AcquiringBankService.acceptedCardsList.includes(cardNumber)) {
       paymentResult.status = "success";
@@ -82,16 +82,20 @@ export class AcquiringBankService {
     } else {
       paymentResult.status = "pending";
       paymentResult.code = "processing_payment";
-      this.simulatePendingPayment(transactionId);
+      this.simulatePendingPayment(paymentId);
     }
 
     if (paymentResult.status === "success") {
       LoggerService.logInfo(
-        `Payment successful for transaction ${transactionId}: ${paymentResult.code}`,
+        `Payment successful for transaction ${paymentId} : ${paymentResult.code}`,
       );
     } else if (paymentResult.status === "failed") {
       LoggerService.logWarn(
-        `Payment failed for transaction ${transactionId}: ${paymentResult.code}`,
+        `Payment failed for transaction ${paymentId} : ${paymentResult.code}`,
+      );
+    } else {
+      LoggerService.logInfo(
+        `Payment pending for transaction ${paymentId} : ${paymentResult.code}`,
       );
     }
 
@@ -102,7 +106,7 @@ export class AcquiringBankService {
    * Simulate a pending payment by resolving the payment status after 15 seconds with a random status (success or failed).
    * Note: This function is non-blocking for the server.
    */
-  private simulatePendingPayment(transactionId: string): void {
+  private simulatePendingPayment(paymentId: string): void {
     const paymentStatusList: PaymentStatus[] = ["success", "failed"];
     const randomStatus =
       paymentStatusList[generateRandomIndex(paymentStatusList.length)];
@@ -113,11 +117,11 @@ export class AcquiringBankService {
         randomStatus === "success"
           ? "successful_payment"
           : REJECTION_CODES[generateRandomIndex(REJECTION_CODES.length)],
-      bankTransactionId: transactionId,
+      paymentId,
     };
 
     setTimeout(() => {
-      LoggerService.logInfo(`Status update for transaction ${transactionId}`);
+      LoggerService.logInfo(`Status update for transaction ${paymentId}`);
       EventService.emit("paymentStatusUpdate", paymentPayload);
       // Time in ms
     }, 15000);

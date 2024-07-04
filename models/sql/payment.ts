@@ -16,7 +16,7 @@ import {
 
 export class PaymentModel extends Model {
   declare id: number;
-  declare uuid: string;
+  declare paymentId: string;
   declare cardHolderName: string;
   declare cardNumber: string;
   declare cardExpirationDate: string;
@@ -25,10 +25,6 @@ export class PaymentModel extends Model {
   declare currency: string;
   declare status: PaymentStatus;
   declare statusCode: PaymentStatusCode;
-
-  // This field represents the transaction ID returned by the acquiring bank.
-  // It is used to find and update the payment status if we get a response from the bank regarding a payment that was not resolved immediately. (e.g., pending)
-  declare bankTransactionId: string;
 
   declare readonly createdAt: Date;
   declare readonly updatedAt: Date;
@@ -41,7 +37,7 @@ export default function (sequelize: Sequelize.Sequelize): typeof PaymentModel {
         type: Sequelize.STRING(150),
         allowNull: false,
       },
-      uuid: {
+      paymentId: {
         type: Sequelize.UUID,
         allowNull: false,
       },
@@ -75,10 +71,6 @@ export default function (sequelize: Sequelize.Sequelize): typeof PaymentModel {
         type: Sequelize.STRING,
         allowNull: false,
       },
-      bankTransactionId: {
-        type: Sequelize.UUID,
-        allowNull: true,
-      },
     },
     {
       sequelize,
@@ -86,13 +78,7 @@ export default function (sequelize: Sequelize.Sequelize): typeof PaymentModel {
       tableName: "payments",
       indexes: [
         // Index to find a payment by its UUID for fast retrieval of the payment records.
-        { name: "FIND_PAYMENTS_BY_UUID", fields: ["uuid"] },
-        {
-          // Index to find a payment by the transaction ID returned by the acquiring bank.
-          // This is used to update the payment status when we receive a response from the bank.
-          name: "FIND_PAYMENTS_BY_BANK_TRANSACTION_ID",
-          fields: ["bankTransactionId"],
-        },
+        { name: "FIND_PAYMENTS_BY_UUID", fields: ["paymentId"] },
       ],
     },
   );
