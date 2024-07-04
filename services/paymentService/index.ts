@@ -1,6 +1,26 @@
+/**
+ * Payment service is responsible for handling payment requests and updating the payment status.
+ * It interacts with the acquiring bank service to process the payment and updates the payment status in the database.
+ * It also subscribes to the payment status update event to update the payment status when the acquiring bank service emits the event.
+ *
+ * Possible improvements:
+ * - Implement a more robust payment processing logic with error handling and retries.
+ * - Implement a retry mechanism for updating the payment status in case of failure.
+ * - Add an adapter layer to handle the communication between the payment service and the acquiring bank service.
+ * - Add a cache layer to store the payment status and reduce the number of database queries.
+ *
+ * Cloud architecture consideration:
+ * In a cloud environment, the payment service can be deployed as serverless functions using AWS Lambda.
+ * This allows for automatic scaling based on the number of requests. Also AWS lambdas are event-driven and can be triggered by events from other services.
+ * Which makes it suitable for handling payment status updates from the acquiring bank service.
+ * A lambda function can be triggered by an SQS message from the acquiring bank service and update the payment status in the database.
+ */
+
 import {
   type CreatePaymentRequestParams,
   type PaymentResponse,
+  type PaymentStatus,
+  type PaymentStatusCode,
 } from "../../models/api/payment/params";
 import {
   GatewayError,
@@ -10,7 +30,7 @@ import PaymentDAO from "../../dao/paymentDAO";
 import { toPaymentResponse } from "./utils";
 import AcquiringBankService, { type PaymentResult } from "../acquiringBank";
 import EventService from "../eventService";
-import { castError } from "../../lib/utils";
+import { castError, printErrorWithStack } from "../errors/errorUtils";
 import LoggerService from "../loggerService";
 
 export class PaymentService {
@@ -21,10 +41,13 @@ export class PaymentService {
     );
   }
 
+  /**
+   * Handler for payment status update event.
+   */
   private paymentStatusUpdateHandler(paymentResult: PaymentResult): void {
     void (async () => {
       try {
-        await PaymentDAO.updatePaymentStatusByBankTransactionId(
+        await this.updatePaymentStatusByBankTransactionId(
           paymentResult.bankTransactionId,
           paymentResult.status,
           paymentResult.code,
@@ -35,12 +58,17 @@ export class PaymentService {
       } catch (error) {
         const castedError = castError(error);
         LoggerService.logError(
-          `Error while updating the status of a payment request with transaction ${paymentResult.bankTransactionId}, ${castedError.message}`,
+          `Error while updating the status of a payment request with transaction ${printErrorWithStack(castedError)}`,
         );
       }
     })();
   }
 
+  /**
+   * Create a payment request.
+   * This function processes the payment request by calling the acquiring bank service to process the payment.
+   * It then creates a payment record in the database with the payment status and bank transaction id.
+   */
   async createPayment(
     paymentRequest: CreatePaymentRequestParams,
   ): Promise<PaymentResponse> {
@@ -50,6 +78,7 @@ export class PaymentService {
 
     const paymentModel = await PaymentDAO.createPayment({
       ...paymentRequest,
+      // Generate a unique UUID for the payment
       uuid: crypto.randomUUID(),
       status: paymentResult.status,
       statusCode: paymentResult.code,
@@ -59,17 +88,39 @@ export class PaymentService {
     return toPaymentResponse(paymentModel);
   }
 
+  /**
+   * Get the payment status by payment id.
+   * This function retrieves the payment record from the database and returns the payment status.
+   * If the payment record is not found, it throws an error.
+   *
+   * We rely on UUID to make sure that we always retrieve the correct payment record.
+   * example: the payment record can have a database table id of 1 but after a database migration, the id can be different.
+   */
   async getPaymentStatus(uuid: string): Promise<PaymentResponse> {
     const paymentModel = await PaymentDAO.getPaymentById(uuid);
-
     if (paymentModel === null) {
       throw new GatewayError(
         PaymentGatewayError.PAYMENT_RECORD_NOT_FOUND,
         `Payment with id ${uuid} was not found.`,
       );
     }
-
     return toPaymentResponse(paymentModel);
+  }
+
+  /**
+   * Update the payment status by bank transaction id.
+   * This function updates the payment status in the database based on the bank transaction id.
+   */
+  async updatePaymentStatusByBankTransactionId(
+    transactionId: string,
+    status: PaymentStatus,
+    statusCode: PaymentStatusCode,
+  ): Promise<void> {
+    await PaymentDAO.updatePaymentStatusByBankTransactionId(
+      transactionId,
+      status,
+      statusCode,
+    );
   }
 }
 export default new PaymentService();

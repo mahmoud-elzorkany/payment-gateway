@@ -1,3 +1,12 @@
+/**
+ * This file contains the main entry point of the application.
+ * It initializes the data folder where logs and database files are stored,
+ * Then it initializes the database and starts the server.
+ *
+ * Possible improvements:
+ * Refactor the functions into a web service to allow better extendability and maintainability.
+ */
+
 import * as express from "express";
 import * as fs from "fs-extra";
 import * as paymentsRouter from "./routes/payments";
@@ -5,12 +14,33 @@ import DatabaseService from "./services/databaseService";
 import LoggerService from "./services/loggerService";
 import * as Path from "path";
 import { DATA_DIR, PORT_NUMBER } from "./constants";
-import { castError } from "./lib/utils";
+import { castError, printErrorWithStack } from "././services/errors/errorUtils";
 
 const app = express();
 
+// Start the payment gateway
+// The main entry point of the application
+start()
+  .then(() => {
+    LoggerService.logInfo("Payment gateway started successfully");
+  })
+  .catch((error: unknown) => {
+    const castedError = castError(error);
+    LoggerService.logError(
+      `Failed to start payment gateway: ${printErrorWithStack(castedError)}`,
+    );
+  });
+
+// Handle SIGINT and SIGTERM signals
+process.on("SIGINT", () => {
+  void stop();
+});
+process.on("SIGTERM", () => {
+  void stop();
+});
+
 /**
- * Start the payment gateway
+ * Initialize the data folder, database and server
  */
 async function start(): Promise<void> {
   initializeDataFolder();
@@ -20,6 +50,7 @@ async function start(): Promise<void> {
 
 /**
  * Stop the payment gateway
+ * Close the database connection and exit the process
  */
 async function stop(): Promise<void> {
   try {
@@ -28,14 +59,15 @@ async function stop(): Promise<void> {
   } catch (error) {
     const castedError = castError(error);
     LoggerService.logError(
-      `Error while stopping the payment gateway: ${castedError.message}`,
+      `Error while stopping the payment gateway: ${printErrorWithStack(castedError)}`,
     );
   }
   process.exit(0);
 }
 
 /**
- * Initialize the data folder
+ * Initialize the data folder for the payment gateway to store logs and database files
+ * If the folder does not exist, it will be created
  */
 function initializeDataFolder(): void {
   fs.ensureDirSync(Path.resolve(DATA_DIR));
@@ -43,14 +75,14 @@ function initializeDataFolder(): void {
 }
 
 /**
- * Initialize the database
+ * Initialize the database for the payment gateway to store payment records
  */
 async function initializeDatabase(): Promise<void> {
   await DatabaseService.initializeDatabase();
 }
 
 /**
- * Initialize the server
+ * Initialize the server by configuring middleware and loading routes and listen on the specified port
  */
 function initializeServer(): void {
   configureServer();
@@ -58,6 +90,9 @@ function initializeServer(): void {
   startServer();
 }
 
+/**
+ * Configure the middleware for the server.
+ */
 function configureServer(): void {
   app.use(express.json());
   app.use((req: express.Request, res: express.Response, next) => {
@@ -70,32 +105,17 @@ function configureServer(): void {
 
 /**
  * Load the routes
+ * Improve the function by adding a dynamic way to load routes from the routes directory
  */
 function loadRoutes(): void {
   app.use("/payments", paymentsRouter);
   LoggerService.logInfo("Routes loaded");
 }
 
+/**
+ * Starts the server and listen on the specified port
+ */
 function startServer(): void {
   app.listen(PORT_NUMBER);
   LoggerService.logInfo(`Server is listening on port ${PORT_NUMBER}`);
 }
-
-// Start the payment gateway
-start()
-  .then(() => {
-    LoggerService.logInfo("Payment gateway started successfully");
-  })
-  .catch((error: Error) => {
-    LoggerService.logError(
-      `Failed to start payment gateway: ${error.stack ?? error.toString()}`,
-    );
-  });
-
-// Handle SIGINT and SIGTERM signals
-process.on("SIGINT", () => {
-  void stop();
-});
-process.on("SIGTERM", () => {
-  void stop();
-});

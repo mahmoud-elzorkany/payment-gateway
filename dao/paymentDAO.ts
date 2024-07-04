@@ -1,3 +1,7 @@
+/**
+ * The payment data access object (DAO) interacts with the database to create and retrieve and update payment records.
+ */
+
 import DatabaseService from "../services/databaseService/index";
 import { type PaymentModel } from "../models/sql/payment";
 import {

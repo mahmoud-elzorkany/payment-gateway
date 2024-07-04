@@ -1,3 +1,32 @@
+/**
+ * The acquiring bank service is responsible for simulating the processing payments.
+ * It contains a list of accepted and declined card numbers.
+ * It simulates the payment processing by checking if the card number is in the accepted or declined list.
+ * If the card number is not in either list, it simulates a pending payment
+ * where the pending payment is resolved after 15 seconds with a random status (success or failed).
+ * then a response from the acquiring bank is simulated by emitting an event with the payment status update.
+ * This event is handled by the payment service to update the payment status in the database using the bank transaction id.
+ *
+ * Note: The 15 seconds delay for payment resolution is non-blocking for the server.
+ *
+ * This idea of the simulation is based on the assumption that there are three possible outcomes for a payment:
+ * 1. The payment is successful.
+ * 2. The payment is declined.
+ * 3. The payment is pending and needs further processing to determine the final status, and it will be resolved after a certain amount of time with a success or failed status.
+ *
+ * Possible improvements:
+ * - Add more realistic payment processing logic.
+ * - Implement a real connection to a testing account with the acquiring bank to simulate real payment processing.
+ * - Add more detailed logging and error handling.
+ *
+ * Cloud architecture consideration:
+ * In real life situations when the application is expected to receive messages from an external service like an acquiring bank,
+ * instead of relying on emitting events, a more robust solution like a message queues should be used.
+ * this allows for non-blocking asynchronous communication between the acquiring bank and the payment which is more reliable and scalable.
+ * A message queue like amazon SQS can be used as it provides automatic and elastic scalability during high traffic periods, durability where messages are stored across multiple data centers,
+ * and also retention of messages for up to 14 ensuring that messages are not lost if an error occurs while processing for example.
+ */
+
 import {
   type PaymentStatus,
   type PaymentStatusCode,
@@ -28,6 +57,13 @@ export class AcquiringBankService {
     "2223003122003222",
   ];
 
+  /**
+   * Process a payment request.
+   * This function simulates the payment processing by checking if the card number is in the accepted or declined list.
+   * If the card number is not in either list, it simulates a pending payment
+   * where the pending payment is resolved after 15 seconds with a random status (success or failed).
+   * then a response from the acquiring bank is simulated by emitting an event with the payment status update.
+   */
   processPayment(cardNumber: string): PaymentResult {
     const transactionId = crypto.randomUUID();
     const paymentResult: PaymentResult = {
@@ -41,15 +77,31 @@ export class AcquiringBankService {
     } else if (AcquiringBankService.declinedCardsList.includes(cardNumber)) {
       paymentResult.status = "failed";
       paymentResult.code =
+        // Randomly select a rejection code
         REJECTION_CODES[generateRandomIndex(REJECTION_CODES.length)];
     } else {
       paymentResult.status = "pending";
       paymentResult.code = "processing_payment";
       this.simulatePendingPayment(transactionId);
     }
+
+    if (paymentResult.status === "success") {
+      LoggerService.logInfo(
+        `Payment successful for transaction ${transactionId}: ${paymentResult.code}`,
+      );
+    } else if (paymentResult.status === "failed") {
+      LoggerService.logWarn(
+        `Payment failed for transaction ${transactionId}: ${paymentResult.code}`,
+      );
+    }
+
     return paymentResult;
   }
 
+  /**
+   * Simulate a pending payment by resolving the payment status after 15 seconds with a random status (success or failed).
+   * Note: This function is non-blocking for the server.
+   */
   private simulatePendingPayment(transactionId: string): void {
     const paymentStatusList: PaymentStatus[] = ["success", "failed"];
     const randomStatus =
@@ -67,7 +119,8 @@ export class AcquiringBankService {
     setTimeout(() => {
       LoggerService.logInfo(`Status update for transaction ${transactionId}`);
       EventService.emit("paymentStatusUpdate", paymentPayload);
-    }, 30000);
+      // Time in ms
+    }, 15000);
   }
 }
 
